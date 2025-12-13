@@ -1,4 +1,4 @@
-# Preprocessing Module for Multilingual Hate Speech Detection
+# Shared preprocessing for all models
 
 import re
 import pandas as pd

@@ -27,7 +27,7 @@ def load_datasets(english_path, hindi_path, hinglish_path):
     eng_df['language'] = 'english'
     eng_df = eng_df[['text', 'label', 'language']]
     all_data.append(eng_df)
-    print(f"   ✓ English: {len(eng_df)} samples")
+    print(f"   - English: {len(eng_df)} samples")
     
     # Hindi - HASOC
     print("[2/3] Loading Hindi (HASOC)...")
@@ -36,7 +36,7 @@ def load_datasets(english_path, hindi_path, hinglish_path):
     hindi_df['language'] = 'hindi'
     hindi_df = hindi_df[['text', 'label', 'language']]
     all_data.append(hindi_df)
-    print(f"   ✓ Hindi: {len(hindi_df)} samples")
+    print(f"   - Hindi: {len(hindi_df)} samples")
     
     # Hinglish - HEOT
     print("[3/3] Loading Hinglish (HEOT)...")
@@ -45,7 +45,7 @@ def load_datasets(english_path, hindi_path, hinglish_path):
     hing_df['language'] = 'hinglish'
     hing_df = hing_df[['text', 'label', 'language']]
     all_data.append(hing_df)
-    print(f"   ✓ Hinglish: {len(hing_df)} samples")
+    print(f"   - Hinglish: {len(hing_df)} samples")
     
     # Combine
     df = pd.concat(all_data, ignore_index=True)
@@ -60,7 +60,7 @@ def load_datasets(english_path, hindi_path, hinglish_path):
 def load_profanity_list(path):
     profanity_df = pd.read_csv(path)
     profanity_words = set(profanity_df['word'].str.lower().dropna().tolist())
-    print(f"✓ Loaded {len(profanity_words)} profanity words")
+    print(f"- Loaded {len(profanity_words)} profanity words")
     return profanity_words, profanity_df
 
 

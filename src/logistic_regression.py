@@ -1,4 +1,4 @@
-# Logistic Regression Model for Multilingual Hate Speech Detection
+# Logistic Regression Model f
 
 import numpy as np
 import pandas as pd
@@ -76,7 +76,7 @@ model = LogisticRegression(
     random_state=42
 )
 model.fit(X_train_combined, y_train)
-print("✓ Training complete!")
+print("Training complete!")
 
 # Evaluate
 y_pred = model.predict(X_test_combined)
@@ -164,5 +164,4 @@ Confusion Matrix:
 with open('results/lr_results.txt', 'w') as f:
     f.write(results)
 
-print("\n✓ Results saved to results/lr_results.txt")
-print("✓ Plot saved to results/lr_results.png")
+

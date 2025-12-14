@@ -13,7 +13,7 @@ st.set_page_config(
 )
 
 # custom css - dark purple theme
-st.markdown(
+st.markdown("""
 <style>
     /* hide streamlit defaults */
     #MainMenu {visibility: hidden;}
@@ -167,7 +167,7 @@ st.markdown(
         text-decoration: none;
     }
 </style>
-, unsafe_allow_html=True)
+""", unsafe_allow_html=True)
 
 # preprocessing
 def clean_text(text):

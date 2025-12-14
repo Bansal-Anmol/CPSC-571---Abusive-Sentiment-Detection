@@ -1,4 +1,4 @@
-# Hate Speech Detector - Streamlit App
+# HateGuard - Hate Speech Detector
 
 import streamlit as st
 import pickle
@@ -7,164 +7,169 @@ from scipy.sparse import hstack
 
 # page config
 st.set_page_config(
-    page_title="Hate Speech Detector",
+    page_title="HateGuard",
     page_icon="🛡️",
     layout="centered"
 )
 
-# custom css
+# custom css - dark purple theme
 st.markdown("""
 <style>
-    /* hide streamlit branding */
+    /* hide streamlit defaults */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
+    header {visibility: hidden;}
+    
+    /* dark purple background */
+    .stApp {
+        background: linear-gradient(180deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%);
+    }
     
     /* main container */
     .block-container {
-        padding-top: 2rem;
-        padding-bottom: 2rem;
+        padding: 2rem 1rem;
+        max-width: 700px;
     }
     
-    /* header styling */
-    .header-container {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        padding: 2rem;
-        border-radius: 15px;
-        margin-bottom: 2rem;
+    /* header */
+    .header {
         text-align: center;
+        padding: 1rem 0 2rem 0;
     }
-    .header-title {
-        color: white;
+    .logo {
         font-size: 2.5rem;
-        font-weight: 700;
-        margin: 0;
+        font-weight: 800;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 0.3rem;
     }
-    .header-subtitle {
-        color: rgba(255,255,255,0.9);
-        font-size: 1.1rem;
-        margin-top: 0.5rem;
+    .tagline {
+        color: #8888aa;
+        font-size: 0.95rem;
     }
     
-    /* input card */
-    .input-card {
-        background: #1E1E1E;
+    /* input area */
+    .stTextArea textarea {
+        background: #1e1e3f !important;
+        border: 1px solid #333366 !important;
+        border-radius: 10px !important;
+        color: #ffffff !important;
+        font-size: 1rem !important;
+    }
+    .stTextArea textarea:focus {
+        border-color: #667eea !important;
+        box-shadow: 0 0 10px rgba(102, 126, 234, 0.3) !important;
+    }
+    
+    /* radio buttons */
+    .stRadio > div {
+        background: #1e1e3f;
+        padding: 1rem;
+        border-radius: 10px;
+        border: 1px solid #333366;
+    }
+    .stRadio label {
+        color: #ffffff !important;
+    }
+    
+    /* button */
+    .stButton > button {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        padding: 0.8rem 2rem;
+        font-size: 1.1rem;
+        font-weight: 600;
+        border-radius: 30px;
+        width: 100%;
+        margin-top: 1rem;
+        transition: all 0.3s ease;
+    }
+    .stButton > button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+    }
+    
+    /* result box - hate */
+    .result-hate {
+        background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
         padding: 1.5rem;
         border-radius: 12px;
-        border: 1px solid #333;
-        margin-bottom: 1rem;
-    }
-    
-    /* example buttons */
-    .example-btn {
-        background: #2D2D2D;
-        border: 1px solid #444;
-        padding: 0.5rem 1rem;
-        border-radius: 20px;
-        color: #fff;
-        font-size: 0.85rem;
-        cursor: pointer;
-        transition: all 0.3s;
-    }
-    .example-btn:hover {
-        background: #3D3D3D;
-        border-color: #667eea;
-    }
-    
-    /* result boxes */
-    .result-hate {
-        background: linear-gradient(135deg, #ff6b6b 0%, #ee5a5a 100%);
-        padding: 2rem;
-        border-radius: 12px;
         text-align: center;
         margin: 1.5rem 0;
+        box-shadow: 0 10px 30px rgba(255, 65, 108, 0.3);
     }
+    
+    /* result box - safe */
     .result-safe {
-        background: linear-gradient(135deg, #51cf66 0%, #40c057 100%);
-        padding: 2rem;
+        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        padding: 1.5rem;
         border-radius: 12px;
         text-align: center;
         margin: 1.5rem 0;
+        box-shadow: 0 10px 30px rgba(56, 239, 125, 0.3);
+    }
+    
+    .result-icon {
+        font-size: 2.5rem;
+        margin-bottom: 0.5rem;
     }
     .result-text {
         color: white;
-        font-size: 1.5rem;
+        font-size: 1.3rem;
         font-weight: 700;
         margin: 0;
     }
-    .result-icon {
-        font-size: 3rem;
-        margin-bottom: 0.5rem;
-    }
     
-    /* confidence section */
-    .confidence-container {
-        background: #1E1E1E;
+    /* confidence */
+    .confidence-box {
+        background: #1e1e3f;
         padding: 1rem 1.5rem;
         border-radius: 10px;
+        border: 1px solid #333366;
         margin: 1rem 0;
     }
     .confidence-label {
-        color: #888;
-        font-size: 0.9rem;
+        color: #8888aa;
+        font-size: 0.85rem;
         margin-bottom: 0.5rem;
     }
     .confidence-value {
-        color: #fff;
-        font-size: 1.8rem;
+        color: #ffffff;
+        font-size: 2rem;
         font-weight: 700;
     }
     
-    /* stats footer */
-    .stats-container {
-        display: flex;
-        justify-content: space-around;
-        background: #1E1E1E;
-        padding: 1.5rem;
-        border-radius: 12px;
-        margin-top: 2rem;
-    }
-    .stat-item {
-        text-align: center;
-    }
-    .stat-value {
-        color: #667eea;
-        font-size: 1.5rem;
-        font-weight: 700;
-    }
-    .stat-label {
-        color: #888;
-        font-size: 0.8rem;
+    /* model info */
+    .model-note {
+        background: #1e1e3f;
+        border-left: 3px solid #667eea;
+        padding: 0.8rem 1rem;
+        border-radius: 0 8px 8px 0;
+        margin: 1rem 0;
+        color: #8888aa;
+        font-size: 0.85rem;
     }
     
     /* footer */
     .footer {
         text-align: center;
-        color: #666;
-        margin-top: 2rem;
+        color: #555577;
+        margin-top: 3rem;
         padding: 1rem;
-        font-size: 0.85rem;
+        font-size: 0.8rem;
+        border-top: 1px solid #333366;
     }
-    
-    /* button styling */
-    .stButton > button {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        border: none;
-        padding: 0.75rem 2rem;
-        font-size: 1rem;
-        font-weight: 600;
-        border-radius: 25px;
-        width: 100%;
-        transition: all 0.3s;
-    }
-    .stButton > button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+    .footer a {
+        color: #667eea;
+        text-decoration: none;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# preprocessing function
+# preprocessing
 def clean_text(text):
     text = str(text).lower()
     text = re.sub(r'http\S+|www\S+|https\S+', '', text)
@@ -201,9 +206,9 @@ def get_profanity_score(text, profanity_df):
 
 # header
 st.markdown("""
-<div class="header-container">
-    <div class="header-title">🛡️ Hate Speech Detector</div>
-    <div class="header-subtitle">Multilingual detection for English, Hindi & Hinglish</div>
+<div class="header">
+    <div class="logo">🛡️ HateGuard</div>
+    <div class="tagline">Multilingual Hate Speech Detection</div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -211,117 +216,81 @@ st.markdown("""
 text_input = st.text_area(
     "Enter text to analyze:",
     height=100,
-    placeholder="Type or paste any text here..."
+    placeholder="Type or paste text here..."
 )
 
-# example texts
-st.markdown("**Quick Examples:**")
-col1, col2, col3, col4 = st.columns(4)
-
-with col1:
-    if st.button("👍 Positive"):
-        st.session_state.example = "I love this community"
-with col2:
-    if st.button("😠 Offensive"):
-        st.session_state.example = "You are such an idiot"
-with col3:
-    if st.button("🇮🇳 Hindi"):
-        st.session_state.example = "तू बेवकूफ है"
-with col4:
-    if st.button("🔀 Hinglish"):
-        st.session_state.example = "tu chutiya hai"
-
-# check if example button was clicked
-if 'example' in st.session_state:
-    text_input = st.session_state.example
-    del st.session_state.example
-    st.rerun()
-
-# analyze button
+# model selection
 st.write("")
-analyze = st.button("🔍 Analyze Text")
+model_choice = st.radio(
+    "Select Model:",
+    ["Logistic Regression", "mBERT"],
+    horizontal=True
+)
+
+# show note for mBERT
+if model_choice == "mBERT":
+    st.markdown("""
+    <div class="model-note">
+        ⚠️ mBERT model is available in the notebook only due to size (~700MB). 
+        Using Logistic Regression for live demo.
+    </div>
+    """, unsafe_allow_html=True)
+
+# detect button
+detect = st.button("🔍 Detect Hate Speech")
 
 # prediction
-if analyze and text_input.strip():
-    try:
-        model, tfidf, profanity_words, profanity_df = load_models()
-        
-        # preprocess and predict
-        clean = clean_text(text_input)
-        text_vec = tfidf.transform([clean])
-        prof_count = count_profanity(text_input, profanity_words)
-        prof_score = get_profanity_score(text_input, profanity_df)
-        features = hstack([text_vec, [[prof_count, prof_score]]])
-        
-        pred = model.predict(features)[0]
-        proba = model.predict_proba(features)[0]
-        confidence = max(proba) * 100
-        
-        # display result
-        if pred == 1:
-            st.markdown("""
-            <div class="result-hate">
-                <div class="result-icon">🚨</div>
-                <div class="result-text">HATE SPEECH DETECTED</div>
-            </div>
-            """, unsafe_allow_html=True)
-        else:
-            st.markdown("""
-            <div class="result-safe">
-                <div class="result-icon">✅</div>
-                <div class="result-text">NO HATE SPEECH</div>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        # confidence display
-        st.markdown(f"""
-        <div class="confidence-container">
-            <div class="confidence-label">CONFIDENCE SCORE</div>
-            <div class="confidence-value">{confidence:.1f}%</div>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        # progress bar
-        st.progress(confidence / 100)
-        
-        # details expander
-        with st.expander("📋 View Details"):
-            st.write(f"**Original:** {text_input}")
-            st.write(f"**Cleaned:** {clean}")
-            st.write(f"**Profanity Count:** {prof_count}")
-            st.write(f"**Profanity Score:** {prof_score}")
+if detect:
+    if text_input.strip():
+        try:
+            model, tfidf, profanity_words, profanity_df = load_models()
             
-    except Exception as e:
-        st.error(f"Error: {e}")
-
-elif analyze:
-    st.warning("Please enter some text to analyze")
-
-# stats section
-st.markdown("""
-<div class="stats-container">
-    <div class="stat-item">
-        <div class="stat-value">37,302</div>
-        <div class="stat-label">Training Samples</div>
-    </div>
-    <div class="stat-item">
-        <div class="stat-value">3</div>
-        <div class="stat-label">Languages</div>
-    </div>
-    <div class="stat-item">
-        <div class="stat-value">88.5%</div>
-        <div class="stat-label">Accuracy</div>
-    </div>
-    <div class="stat-item">
-        <div class="stat-value">TF-IDF</div>
-        <div class="stat-label">+ Profanity</div>
-    </div>
-</div>
-""", unsafe_allow_html=True)
+            # preprocess and predict
+            clean = clean_text(text_input)
+            text_vec = tfidf.transform([clean])
+            prof_count = count_profanity(text_input, profanity_words)
+            prof_score = get_profanity_score(text_input, profanity_df)
+            features = hstack([text_vec, [[prof_count, prof_score]]])
+            
+            pred = model.predict(features)[0]
+            proba = model.predict_proba(features)[0]
+            confidence = max(proba) * 100
+            
+            # result display
+            if pred == 1:
+                st.markdown("""
+                <div class="result-hate">
+                    <div class="result-icon">🚨</div>
+                    <div class="result-text">HATE SPEECH DETECTED</div>
+                </div>
+                """, unsafe_allow_html=True)
+            else:
+                st.markdown("""
+                <div class="result-safe">
+                    <div class="result-icon">✅</div>
+                    <div class="result-text">NOT HATE SPEECH</div>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            # confidence
+            st.markdown(f"""
+            <div class="confidence-box">
+                <div class="confidence-label">CONFIDENCE</div>
+                <div class="confidence-value">{confidence:.1f}%</div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            st.progress(confidence / 100)
+            
+        except Exception as e:
+            st.error(f"Error: {e}")
+    else:
+        st.warning("Please enter some text")
 
 # footer
 st.markdown("""
 <div class="footer">
-    CPSC 571 Final Project • University of Calgary
+    CPSC 571 Final Project • University of Calgary<br>
+    <a href="https://github.com/Bansal-Anmol/CPSC-571---Abusive-Sentiment-Detection" target="_blank">GitHub Repository</a>
 </div>
 """, unsafe_allow_html=True)

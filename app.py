@@ -142,17 +142,6 @@ st.markdown("""
         font-weight: 700;
     }
     
-    /* model info */
-    .model-note {
-        background: #1e1e3f;
-        border-left: 3px solid #667eea;
-        padding: 0.8rem 1rem;
-        border-radius: 0 8px 8px 0;
-        margin: 1rem 0;
-        color: #8888aa;
-        font-size: 0.85rem;
-    }
-    
     /* footer */
     .footer {
         text-align: center;
@@ -227,15 +216,6 @@ model_choice = st.radio(
     horizontal=True
 )
 
-# show note for mBERT
-if model_choice == "mBERT":
-    st.markdown("""
-    <div class="model-note">
-        ⚠️ mBERT model is available in the notebook only due to size (~700MB). 
-        Using Logistic Regression for live demo.
-    </div>
-    """, unsafe_allow_html=True)
-
 # detect button
 detect = st.button("🔍 Detect Hate Speech")
 
@@ -243,18 +223,19 @@ detect = st.button("🔍 Detect Hate Speech")
 if detect:
     if text_input.strip():
         try:
-            model, tfidf, profanity_words, profanity_df = load_models()
-            
-            # preprocess and predict
-            clean = clean_text(text_input)
-            text_vec = tfidf.transform([clean])
-            prof_count = count_profanity(text_input, profanity_words)
-            prof_score = get_profanity_score(text_input, profanity_df)
-            features = hstack([text_vec, [[prof_count, prof_score]]])
-            
-            pred = model.predict(features)[0]
-            proba = model.predict_proba(features)[0]
-            confidence = max(proba) * 100
+            with st.spinner("Analyzing..."):
+                model, tfidf, profanity_words, profanity_df = load_models()
+                
+                # preprocess and predict
+                clean = clean_text(text_input)
+                text_vec = tfidf.transform([clean])
+                prof_count = count_profanity(text_input, profanity_words)
+                prof_score = get_profanity_score(text_input, profanity_df)
+                features = hstack([text_vec, [[prof_count, prof_score]]])
+                
+                pred = model.predict(features)[0]
+                proba = model.predict_proba(features)[0]
+                confidence = max(proba) * 100
             
             # result display
             if pred == 1:
@@ -275,7 +256,7 @@ if detect:
             # confidence
             st.markdown(f"""
             <div class="confidence-box">
-                <div class="confidence-label">CONFIDENCE</div>
+                <div class="confidence-label">CONFIDENCE ({model_choice})</div>
                 <div class="confidence-value">{confidence:.1f}%</div>
             </div>
             """, unsafe_allow_html=True)

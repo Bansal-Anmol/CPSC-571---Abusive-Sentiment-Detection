@@ -3,7 +3,9 @@
 import streamlit as st
 import pickle
 import re
+import torch
 from scipy.sparse import hstack
+from transformers import BertTokenizer, BertForSequenceClassification
 
 # page config
 st.set_page_config(
@@ -15,23 +17,19 @@ st.set_page_config(
 # custom css - dark purple theme
 st.markdown("""
 <style>
-    /* hide streamlit defaults */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
     
-    /* dark purple background */
     .stApp {
         background: linear-gradient(180deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%);
     }
     
-    /* main container */
     .block-container {
         padding: 2rem 1rem;
         max-width: 700px;
     }
     
-    /* header */
     .header {
         text-align: center;
         padding: 1rem 0 2rem 0;
@@ -50,7 +48,6 @@ st.markdown("""
         font-size: 0.95rem;
     }
     
-    /* input area */
     .stTextArea textarea {
         background: #1e1e3f !important;
         border: 1px solid #333366 !important;
@@ -63,7 +60,6 @@ st.markdown("""
         box-shadow: 0 0 10px rgba(102, 126, 234, 0.3) !important;
     }
     
-    /* radio buttons */
     .stRadio > div {
         background: #1e1e3f;
         padding: 1rem;
@@ -74,7 +70,6 @@ st.markdown("""
         color: #ffffff !important;
     }
     
-    /* button */
     .stButton > button {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
@@ -92,7 +87,6 @@ st.markdown("""
         box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
     }
     
-    /* result box - hate */
     .result-hate {
         background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
         padding: 1.5rem;
@@ -102,7 +96,6 @@ st.markdown("""
         box-shadow: 0 10px 30px rgba(255, 65, 108, 0.3);
     }
     
-    /* result box - safe */
     .result-safe {
         background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
         padding: 1.5rem;
@@ -123,7 +116,6 @@ st.markdown("""
         margin: 0;
     }
     
-    /* confidence */
     .confidence-box {
         background: #1e1e3f;
         padding: 1rem 1.5rem;
@@ -142,7 +134,6 @@ st.markdown("""
         font-weight: 700;
     }
     
-    /* footer */
     .footer {
         text-align: center;
         color: #555577;
@@ -170,14 +161,23 @@ def clean_text(text):
     text = re.sub(r'\s+', ' ', text).strip()
     return text
 
-# load models
+# load LR models
 @st.cache_resource
-def load_models():
+def load_lr_models():
     model = pickle.load(open('models/lr_model.pkl', 'rb'))
     tfidf = pickle.load(open('models/tfidf_vectorizer.pkl', 'rb'))
     profanity_words = pickle.load(open('models/profanity_words.pkl', 'rb'))
     profanity_df = pickle.load(open('models/profanity_df.pkl', 'rb'))
     return model, tfidf, profanity_words, profanity_df
+
+# load mBERT model from HuggingFace
+@st.cache_resource
+def load_mbert_model():
+    model_name = "roshanp1923/mbert-hate-speech"
+    tokenizer = BertTokenizer.from_pretrained(model_name)
+    model = BertForSequenceClassification.from_pretrained(model_name)
+    model.eval()
+    return model, tokenizer
 
 # profanity functions
 def count_profanity(text, profanity_words):
@@ -192,6 +192,32 @@ def get_profanity_score(text, profanity_df):
         if len(match) > 0:
             total += match['score'].values[0]
     return total
+
+# LR prediction
+def predict_lr(text, model, tfidf, profanity_words, profanity_df):
+    clean = clean_text(text)
+    text_vec = tfidf.transform([clean])
+    prof_count = count_profanity(text, profanity_words)
+    prof_score = get_profanity_score(text, profanity_df)
+    features = hstack([text_vec, [[prof_count, prof_score]]])
+    
+    pred = model.predict(features)[0]
+    proba = model.predict_proba(features)[0]
+    confidence = max(proba) * 100
+    return pred, confidence
+
+# mBERT prediction
+def predict_mbert(text, model, tokenizer):
+    clean = clean_text(text)
+    inputs = tokenizer(clean, return_tensors="pt", truncation=True, max_length=128, padding=True)
+    
+    with torch.no_grad():
+        outputs = model(**inputs)
+        probs = torch.nn.functional.softmax(outputs.logits, dim=1)
+        pred = torch.argmax(probs, dim=1).item()
+        confidence = probs[0][pred].item() * 100
+    
+    return pred, confidence
 
 # header
 st.markdown("""
@@ -224,18 +250,12 @@ if detect:
     if text_input.strip():
         try:
             with st.spinner("Analyzing..."):
-                model, tfidf, profanity_words, profanity_df = load_models()
-                
-                # preprocess and predict
-                clean = clean_text(text_input)
-                text_vec = tfidf.transform([clean])
-                prof_count = count_profanity(text_input, profanity_words)
-                prof_score = get_profanity_score(text_input, profanity_df)
-                features = hstack([text_vec, [[prof_count, prof_score]]])
-                
-                pred = model.predict(features)[0]
-                proba = model.predict_proba(features)[0]
-                confidence = max(proba) * 100
+                if model_choice == "Logistic Regression":
+                    model, tfidf, profanity_words, profanity_df = load_lr_models()
+                    pred, confidence = predict_lr(text_input, model, tfidf, profanity_words, profanity_df)
+                else:
+                    model, tokenizer = load_mbert_model()
+                    pred, confidence = predict_mbert(text_input, model, tokenizer)
             
             # result display
             if pred == 1:

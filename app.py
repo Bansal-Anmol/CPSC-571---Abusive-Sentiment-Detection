@@ -186,7 +186,7 @@ def count_profanity(text, profanity_words):
     for word in words:
         if word in profanity_words:
             count += 1
-    return
+    return count
 
 # gets the profanity scores based on our hinglish list
 def get_profanity_score(text, profanity_df):

@@ -81,3 +81,21 @@ The app automatically downloads and loads the model from HuggingFace.
 | `profanity_df.pkl` | Profanity words with scores |
 | `profanity_words.pkl` | List of Hinglish profanity words |
 | `tfidf_vectorizer.pkl` | TF-IDF vectorizer (5000 features) |
+
+##Set up Instruction (Run it on your local computer -> terminal):
+
+Step 1: Clone the repository
+git clone hhttps://github.com/Bansal-Anmol/CPSC-571---Abusive-Sentiment-Detection.git
+cd CPSC-571---Abusive-Sentiment-Detection
+
+Step 2: Install dependencies
+pip install streamlit pandas numpy scikit-learn scipy torch transformers
+
+Step 3: Run the app
+Streamlit run app.py (App will automatically open in your browser) 
+
+Usage: 
+1. Enter text in the input box
+2. Select model (Logistic Regression or mBERT)
+3. Click "Detect Hate Speech"
+4. View result and confidence score

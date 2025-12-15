@@ -86,6 +86,7 @@ The app automatically downloads and loads the model from HuggingFace.
 
 ### Step 1: Clone the repository
 git clone hhttps://github.com/Bansal-Anmol/CPSC-571---Abusive-Sentiment-Detection.git
+
 cd CPSC-571---Abusive-Sentiment-Detection
 
 ### Step 2: Install dependencies

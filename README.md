@@ -82,7 +82,7 @@ The app automatically downloads and loads the model from HuggingFace.
 | `profanity_words.pkl` | List of Hinglish profanity words |
 | `tfidf_vectorizer.pkl` | TF-IDF vectorizer (5000 features) |
 
-##Set up Instruction (Run it on your local computer -> terminal):
+## Set up Instruction (Run it on your local computer -> terminal):
 
 Step 1: Clone the repository
 git clone hhttps://github.com/Bansal-Anmol/CPSC-571---Abusive-Sentiment-Detection.git

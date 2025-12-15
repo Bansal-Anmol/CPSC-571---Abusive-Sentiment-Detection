@@ -85,9 +85,8 @@ The app automatically downloads and loads the model from HuggingFace.
 ## Set up Instruction (Run it on your local computer -> terminal):
 
 ### Step 1: Clone the repository
-git clone hhttps://github.com/Bansal-Anmol/CPSC-571---Abusive-Sentiment-Detection.git
-
-cd CPSC-571---Abusive-Sentiment-Detection
+- git clone hhttps://github.com/Bansal-Anmol/CPSC-571---Abusive-Sentiment-Detection.git
+- cd CPSC-571---Abusive-Sentiment-Detection
 
 ### Step 2: Install dependencies
 pip install streamlit pandas numpy scikit-learn scipy torch transformers

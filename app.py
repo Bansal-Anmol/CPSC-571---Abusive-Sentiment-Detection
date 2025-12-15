@@ -1,20 +1,20 @@
-# HateGuard - Hate Speech Detector
+# HateGuard - Multilingual Hate Speech Detection
 
-import streamlit as st
-import pickle
-import re
-import torch
-from scipy.sparse import hstack
-from transformers import BertTokenizer, BertForSequenceClassification
+import streamlit as st # web app
+import pickle # loads model files
+import re # text pattern matching
+import torch # run mBERT 
+from scipy.sparse import hstack # combine TF-IDF features with profanity features
+from transformers import BertTokenizer, BertForSequenceClassification # loads BERT tokenizer and model
 
-# page config
+# page setup
 st.set_page_config(
     page_title="HateGuard",
     page_icon="🛡️",
     layout="centered"
 )
 
-# custom css - dark purple theme
+# styling - dark purple theme
 st.markdown("""
 <style>
     #MainMenu {visibility: hidden;}
@@ -149,19 +149,19 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# preprocessing
+# cleaning the text - same function from preprocessing.py
 def clean_text(text):
     text = str(text).lower()
-    text = re.sub(r'http\S+|www\S+|https\S+', '', text)
-    text = re.sub(r'@\w+', '', text)
-    text = re.sub(r'#(\w+)', r'\1', text)
-    text = re.sub(r'rt\s+', '', text)
-    text = re.sub(r'[^\w\s\u0900-\u097F]', '', text)
-    text = re.sub(r'\d+', '', text)
+    text = re.sub(r'http\S+|www\S+|https\S+', '', text) #urls
+    text = re.sub(r'@\w+', '', text) #mentions
+    text = re.sub(r'#(\w+)', r'\1', text) #hashtags
+    text = re.sub(r'rt\s+', '', text) #retweets
+    text = re.sub(r'[^\w\s\u0900-\u097F]', '', text) # keep letters + hindi
+    text = re.sub(r'\d+', '', text) # numbers
     text = re.sub(r'\s+', ' ', text).strip()
     return text
 
-# load LR models
+# load LR models and vectorizer from pickle files
 @st.cache_resource
 def load_lr_models():
     model = pickle.load(open('models/lr_model.pkl', 'rb'))
@@ -170,7 +170,7 @@ def load_lr_models():
     profanity_df = pickle.load(open('models/profanity_df.pkl', 'rb'))
     return model, tfidf, profanity_words, profanity_df
 
-# load mBERT model from HuggingFace
+# load mBERT model from HuggingFace - trained and uploaded there
 @st.cache_resource
 def load_mbert_model():
     model_name = "roshanp1923/mbert-hate-speech"
@@ -179,11 +179,16 @@ def load_mbert_model():
     model.eval()
     return model, tokenizer
 
-# profanity functions
+# counts how many profanity words are in the text
 def count_profanity(text, profanity_words):
     words = str(text).lower().split()
-    return sum(1 for word in words if word in profanity_words)
+    count = 0
+    for word in words:
+        if word in profanity_words:
+            count += 1
+    return
 
+# gets the profanity scores based on our hinglish list
 def get_profanity_score(text, profanity_df):
     words = str(text).lower().split()
     total = 0
@@ -193,12 +198,14 @@ def get_profanity_score(text, profanity_df):
             total += match['score'].values[0]
     return total
 
-# LR prediction
+# predicting with logistic regression
 def predict_lr(text, model, tfidf, profanity_words, profanity_df):
     clean = clean_text(text)
     text_vec = tfidf.transform([clean])
     prof_count = count_profanity(text, profanity_words)
     prof_score = get_profanity_score(text, profanity_df)
+
+    # combining tfidf with profanity features
     features = hstack([text_vec, [[prof_count, prof_score]]])
     
     pred = model.predict(features)[0]
@@ -206,7 +213,7 @@ def predict_lr(text, model, tfidf, profanity_words, profanity_df):
     confidence = max(proba) * 100
     return pred, confidence
 
-# mBERT prediction
+# predicting with mBERT
 def predict_mbert(text, model, tokenizer):
     clean = clean_text(text)
     inputs = tokenizer(clean, return_tensors="pt", truncation=True, max_length=128, padding=True)
@@ -219,6 +226,8 @@ def predict_mbert(text, model, tokenizer):
     
     return pred, confidence
 
+# ---------- APP STARTS HERE ----------
+
 # header
 st.markdown("""
 <div class="header">
@@ -227,14 +236,14 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# text input
+# text input box
 text_input = st.text_area(
     "Enter text to analyze:",
     height=100,
     placeholder="Type or paste text here..."
 )
 
-# model selection
+# choosing which model to use
 st.write("")
 model_choice = st.radio(
     "Select Model:",
@@ -242,10 +251,10 @@ model_choice = st.radio(
     horizontal=True
 )
 
-# detect button
+# button to run prediction
 detect = st.button("🔍 Detect Hate Speech")
 
-# prediction
+# when button is clicked
 if detect:
     if text_input.strip():
         try:
